@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import { Plus, Trash2, Upload, Globe, FileText, Search, Filter, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
 const LEVEL_LABELS = ['New', 'Spelled', 'Meaning', 'Mastered'];
@@ -172,6 +172,7 @@ export default function WordBank() {
           <DialogContent className="rounded-3xl border-4 border-[#A5D6A7] max-w-lg" data-testid="import-modal">
             <DialogHeader>
               <DialogTitle className="text-xl font-black text-[#1B5E20]">Import Words</DialogTitle>
+              <DialogDescription className="text-sm font-bold text-[#558B2F]">Add words from text, files, or web pages</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div className="flex gap-2">

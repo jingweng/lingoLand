@@ -2,7 +2,12 @@ from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
-import os, logging, uuid, json, re, io
+import os
+import logging
+import uuid
+import json
+import re
+import io
 from pathlib import Path
 from pydantic import BaseModel
 from typing import List, Optional
