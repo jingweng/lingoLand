@@ -1,54 +1,52 @@
-import { useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import AuthPage from "@/pages/AuthPage";
+import StudentDashboard from "@/pages/StudentDashboard";
+import WordBank from "@/pages/WordBank";
+import PreGame from "@/pages/PreGame";
+import GamePlay from "@/pages/GamePlay";
+import TeacherDashboard from "@/pages/TeacherDashboard";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
-
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
-  return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+function ProtectedRoute({ children, role }) {
+  const { user, loading } = useAuth();
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center forest-bg">
+      <div className="text-center animate-float">
+        <div className="w-16 h-16 rounded-full bg-[#2E7D32] mx-auto mb-4 flex items-center justify-center">
+          <span className="text-white font-black text-2xl">S</span>
+        </div>
+        <p className="font-bold text-[#2E7D32]">Loading...</p>
+      </div>
     </div>
   );
-};
+  if (!user) return <Navigate to="/" />;
+  if (role && user.role !== role) return <Navigate to={user.role === 'teacher' ? '/teacher' : '/dashboard'} />;
+  return children;
+}
 
-function App() {
+function AppRoutes() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <Routes>
+      <Route path="/" element={user ? <Navigate to={user.role === 'teacher' ? '/teacher' : '/dashboard'} /> : <AuthPage />} />
+      <Route path="/dashboard" element={<ProtectedRoute role="student"><StudentDashboard /></ProtectedRoute>} />
+      <Route path="/words" element={<ProtectedRoute role="student"><WordBank /></ProtectedRoute>} />
+      <Route path="/play" element={<ProtectedRoute role="student"><PreGame /></ProtectedRoute>} />
+      <Route path="/game" element={<ProtectedRoute role="student"><GamePlay /></ProtectedRoute>} />
+      <Route path="/teacher" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
