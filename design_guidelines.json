@@ -1,0 +1,189 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "The Anti-AI Designer",
+    "principles": [
+      "Fusion over Imitation: Mix 'Educational App' with 'Adventure Game' and 'Craft Project'.",
+      "Emotion First: Every screen must feel Safe, Encouraging, and Magical.",
+      "Content is King: The words are the heroes; the UI is the stage.",
+      "Zoom In: Big, chunky buttons and text for little hands.",
+      "Negative Space: Don't clutter the forest; let the trees breathe.",
+      "Contrast: High contrast for accessibility (WCAG AA)."
+    ],
+    "anti_patterns": [
+      "Purple/Teal everywhere (Use Nature Green/Brown instead).",
+      "Inter font (Use Rounded Sans).",
+      "Center-Everything (Use asymmetrical 'Forest Path' layouts).",
+      "Gradient Overload (Use Flat Colors + Textures)."
+    ]
+  },
+  "theme": {
+    "name": "Friendly Forest",
+    "mode": "light",
+    "vibe": "Playful, Organic, Safe, Tactile",
+    "target_audience": "K-6 Students (5-12 years) and Teachers"
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "default": "#E8F5E9",
+        "paper": "#FFFFFF",
+        "forest_deep": "#1B5E20"
+      },
+      "primary": {
+        "DEFAULT": "#2E7D32", 
+        "foreground": "#FFFFFF",
+        "hover": "#1B5E20",
+        "light": "#A5D6A7"
+      },
+      "secondary": {
+        "DEFAULT": "#795548", 
+        "foreground": "#FFFFFF",
+        "hover": "#5D4037"
+      },
+      "accent": {
+        "yellow": "#FBC02D", 
+        "blue": "#0288D1", 
+        "red": "#D32F2F"
+      },
+      "text": {
+        "primary": "#1B5E20", 
+        "secondary": "#558B2F",
+        "muted": "#8D6E63"
+      },
+      "status": {
+        "success": "#4CAF50",
+        "error": "#E57373",
+        "warning": "#FFB74D",
+        "info": "#4FC3F7"
+      }
+    },
+    "gradients": {
+      "forest_mist": "linear-gradient(180deg, #E8F5E9 0%, #C8E6C9 100%)",
+      "sunset_glow": "linear-gradient(135deg, #FFF9C4 0%, #FFCC80 100%)",
+      "rainy_day": "linear-gradient(180deg, #E1F5FE 0%, #B3E5FC 100%)"
+    }
+  },
+  "typography": {
+    "font_family": {
+      "headings": "\"Nunito\", \"Quicksand\", \"Fredoka One\", sans-serif",
+      "body": "\"Varela Round\", \"Sniglet\", \"Comic Neue\", sans-serif",
+      "code": "\"Fira Code\", monospace"
+    },
+    "scale": {
+      "h1": "text-5xl md:text-6xl font-black tracking-tight text-primary-DEFAULT drop-shadow-sm",
+      "h2": "text-4xl md:text-5xl font-bold tracking-tight text-primary-DEFAULT",
+      "h3": "text-2xl md:text-3xl font-bold text-secondary-DEFAULT",
+      "body": "text-lg md:text-xl font-medium leading-relaxed text-slate-800",
+      "caption": "text-sm md:text-base font-bold text-slate-500 uppercase tracking-wide"
+    }
+  },
+  "ui_components": {
+    "buttons": {
+      "primary": "bg-primary text-white rounded-full px-8 py-4 font-black text-xl shadow-[0_6px_0_rgb(27,94,32)] active:shadow-none active:translate-y-[6px] transition-all hover:bg-primary-hover",
+      "secondary": "bg-secondary text-white rounded-full px-6 py-3 font-bold text-lg shadow-[0_4px_0_rgb(93,64,55)] active:shadow-none active:translate-y-[4px] transition-all hover:bg-secondary-hover",
+      "ghost": "bg-transparent text-primary-DEFAULT hover:bg-primary-light/20 rounded-xl px-4 py-2 font-bold transition-colors",
+      "icon": "p-3 rounded-full bg-white shadow-md hover:scale-110 transition-transform text-primary-DEFAULT"
+    },
+    "cards": {
+      "default": "bg-white rounded-3xl border-4 border-primary-light shadow-[8px_8px_0_#C8E6C9] p-6",
+      "wood": "bg-[#8D6E63] rounded-xl border-4 border-[#5D4037] shadow-[4px_4px_0_#3E2723] p-6 text-white pattern-diagonal-lines-sm",
+      "cloud": "bg-white rounded-[2rem] border-b-8 border-slate-100 shadow-xl p-8 relative"
+    },
+    "inputs": {
+      "default": "w-full bg-white border-4 border-primary-light rounded-2xl px-4 py-3 text-xl font-bold text-primary-DEFAULT placeholder:text-primary-light/70 focus:outline-none focus:border-primary-DEFAULT focus:ring-4 focus:ring-primary-light/30 transition-all",
+      "large": "text-center text-3xl tracking-widest uppercase"
+    }
+  },
+  "layout_strategies": {
+    "dashboard_student": {
+      "type": "bento_organic",
+      "grid": "grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8",
+      "description": "A 'Map' of the forest. Each widget is a location (Word Bank, Game, Progress). Use organic shapes."
+    },
+    "dashboard_teacher": {
+      "type": "clean_panel",
+      "grid": "grid grid-cols-12 gap-6",
+      "description": "Clear mastery tables. Less whimsical, more functional, but still friendly."
+    },
+    "game_screen": {
+      "type": "central_stage",
+      "alignment": "flex flex-col items-center justify-center min-h-[80vh]",
+      "description": "Focus on the word. Distractions pushed to edges."
+    }
+  },
+  "visual_enhancers": {
+    "textures": [
+      "wood-pattern", 
+      "leaf-veins", 
+      "cloud-fluff", 
+      "rain-drops"
+    ],
+    "decorations": {
+      "leaf_badge": "absolute -top-4 -right-4 bg-accent-yellow text-secondary-DEFAULT font-bold px-3 py-1 rounded-full shadow-md rotate-12",
+      "vines": "border-l-4 border-primary-DEFAULT border-dashed"
+    }
+  },
+  "motion": {
+    "types": {
+      "bounce": "animate-bounce-short",
+      "shake": "animate-shake",
+      "float": "animate-float",
+      "pop": "active:scale-95 transition-transform"
+    },
+    "accessibility": "prefers-reduced-motion: reduce"
+  },
+  "image_assets": {
+    "mascots": [
+      {
+        "name": "Professor Hoot (Owl)",
+        "url": "https://images.pexels.com/photos/1345804/pexels-photo-1345804.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "role": "Guide / Helper",
+        "description": "Bright felt owl craft. Use in circular avatars or popping out from corners."
+      },
+      {
+        "name": "Sidekick Raccoon",
+        "url": "https://images.unsplash.com/photo-1569182758847-02f170651eb4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzOTB8MHwxfHNlYXJjaHwxfHxjdXRlJTIwY2FydG9vbiUyMGZvcmVzdCUyMGFuaW1hbHMlMjBvd2wlMjBmb3glMjByYWNjb29uJTIwc3F1aXJyZWwlMjBpbGx1c3RyYXRpb258ZW58MHx8fHwxNzczOTcwNTI2fDA&ixlib=rb-4.1.0&q=85",
+        "role": "Cheerleader",
+        "description": "Real raccoon. Use with 'grayscale' filter or 'sepia' to match cartoon vibe if needed, or just as a cute photo badge."
+      }
+    ],
+    "backgrounds": [
+      {
+        "name": "Sunny Forest",
+        "url": "https://images.pexels.com/photos/615348/forest-fog-sunny-nature-615348.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "role": "Hero Background / Level 2",
+        "description": "Scenic autumn forest. Use with CSS overlay: 'bg-green-900/80 mix-blend-overlay' to tint it forest green."
+      },
+      {
+        "name": "Deep Woods",
+        "url": "https://images.pexels.com/photos/330208/pexels-photo-330208.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "role": "Level 3 Background",
+        "description": "Sunset conifer forest."
+      }
+    ]
+  },
+  "component_path": {
+    "shadcn": "/app/frontend/src/components/ui",
+    "custom": "/app/frontend/src/components/custom"
+  },
+  "instructions_to_main_agent": [
+    "Install 'lucide-react' for icons (Leaf, Cloud, Sun, Book, Trophy).",
+    "Install 'framer-motion' for the 'Spelling Rain' drops and 'Meaning Match' card flips.",
+    "Install 'canvas-confetti' for reward screens.",
+    "Use 'Nunito' font from Google Fonts. Add import to index.css.",
+    "Create a 'ThemeWrapper' that applies the #E8F5E9 background globally.",
+    "For the 'Spelling Rain' game: Create a full-screen canvas or absolute positioned divs for falling letters.",
+    "For the 'Meaning Match' game: Use a Grid of 'Flippable Cards' (Memory game style).",
+    "For the 'Sentence Architect' game: Use 'Drag and Drop' (react-beautiful-dnd or dnd-kit) or simple click-to-move word blocks.",
+    "Teacher Dashboard: Use 'Recharts' for mastery tables (Simple Bar Charts showing 'Words Mastered' vs 'Words Struggling')."
+  ],
+  "universal_guidelines": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts. Create depth through layered design elements.",
+    "Every interaction needs micro-animations - hover states, transitions.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "NEVER use AI assistant Emoji characters like 🤖 etc.",
+    "Main agent relies on these image URLs. Missing categories = main agent will use placeholder text which is FORBIDDEN."
+  ]
+}
