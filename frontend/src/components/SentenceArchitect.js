@@ -24,8 +24,10 @@ export default function SentenceArchitect({ word, onComplete }) {
       setTimeout(() => onComplete(Math.max(0, total)), 4000);
     } catch {
       playError();
-      setResult({ uses_target_word: sentence.toLowerCase().includes(word.toLowerCase()), word_count: sentence.split(' ').length, spelling_errors: [], grammar_errors: [], score_breakdown: { usage_points: 10, length_points: sentence.split(' ').length, spelling_penalty: 0, grammar_penalty: 0, total: 10 + sentence.split(' ').length } });
-      setTimeout(() => onComplete(10 + sentence.split(' ').length), 3000);
+      const uses = sentence.toLowerCase().includes(word.toLowerCase());
+      const pts = uses ? 10 : 0;
+      setResult({ uses_target_word: uses, correct_usage: uses, word_count: sentence.split(' ').length, spelling_errors: [], grammar_errors: [], score_breakdown: { usage_points: pts, grammar_penalty: 0, total: pts } });
+      setTimeout(() => onComplete(pts), 3000);
     }
     setChecking(false);
   };
@@ -41,7 +43,7 @@ export default function SentenceArchitect({ word, onComplete }) {
           </button>
         </div>
         <p className="text-base font-bold text-[#558B2F] mt-3">Write a sentence using this word with correct grammar!</p>
-        <p className="text-sm font-bold text-[#8D6E63] mt-1">+10 for using the word, +1 per word, -1 per error</p>
+        <p className="text-sm font-bold text-[#8D6E63] mt-1">10pts for correct usage with complexity, -1pt per grammar error</p>
       </div>
 
       {/* Input */}
@@ -87,15 +89,15 @@ export default function SentenceArchitect({ word, onComplete }) {
                 {result.score_breakdown?.total || 0} points
               </div>
               <div className="flex flex-wrap justify-center gap-3 text-sm font-bold">
-                {result.uses_target_word && (
-                  <span className="px-3 py-1 rounded-full bg-[#C8E6C9] text-[#2E7D32]">Word Used +{result.score_breakdown?.usage_points}</span>
-                )}
-                <span className="px-3 py-1 rounded-full bg-[#E8F5E9] text-[#558B2F]">Length +{result.score_breakdown?.length_points}</span>
-                {result.score_breakdown?.spelling_penalty > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-[#FFEBEE] text-[#D32F2F]">Spelling -{result.score_breakdown.spelling_penalty}</span>
+                {result.correct_usage ? (
+                  <span className="px-3 py-1 rounded-full bg-[#C8E6C9] text-[#2E7D32]">Correct Usage +{result.score_breakdown?.usage_points}</span>
+                ) : result.uses_target_word ? (
+                  <span className="px-3 py-1 rounded-full bg-[#FFF9C4] text-[#F57F17]">Word Used (needs complexity) +0</span>
+                ) : (
+                  <span className="px-3 py-1 rounded-full bg-[#FFEBEE] text-[#D32F2F]">Word Not Used +0</span>
                 )}
                 {result.score_breakdown?.grammar_penalty > 0 && (
-                  <span className="px-3 py-1 rounded-full bg-[#FFEBEE] text-[#D32F2F]">Grammar -{result.score_breakdown.grammar_penalty}</span>
+                  <span className="px-3 py-1 rounded-full bg-[#FFEBEE] text-[#D32F2F]">Errors -{result.score_breakdown.grammar_penalty}</span>
                 )}
               </div>
             </div>

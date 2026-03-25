@@ -291,6 +291,90 @@ class SpellingQuestAPITester:
         self.log_test("Get Game Sessions", False, f"Status: {response.status_code if response else 'No response'}")
         return False
 
+    # LEARN TESTS (NEW FEATURE)
+    def test_learn_meanings(self):
+        """Test getting word meanings for learning"""
+        meanings_data = {"word": "adventure"}
+        response = self.make_request('POST', 'learn/meanings', meanings_data, token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = 'meanings' in data and len(data.get('meanings', [])) == 3
+            # Check that each meaning has definition and sentence
+            if success and data.get('meanings'):
+                for meaning in data['meanings']:
+                    if 'definition' not in meaning or 'sentence' not in meaning:
+                        success = False
+                        break
+            self.log_test("Learn Meanings (AI)", success, f"Got {len(data.get('meanings', []))} meanings")
+            return success
+        self.log_test("Learn Meanings (AI)", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    # WEEKLY TASK TESTS (NEW FEATURE)
+    def test_generate_weekly_task(self):
+        """Test generating weekly task"""
+        # First add some words to generate task from
+        words_data = {"words": ["adventure", "beautiful", "courage", "discover", "explore"]}
+        add_response = self.make_request('POST', 'words', words_data, token=self.student_token)
+        if not add_response or add_response.status_code != 200:
+            self.log_test("Generate Weekly Task", False, "Failed to add words for task")
+            return False
+        
+        # Get word IDs
+        words_response = self.make_request('GET', 'words', token=self.student_token)
+        if not words_response or words_response.status_code != 200:
+            self.log_test("Generate Weekly Task", False, "Failed to get words")
+            return False
+        
+        words = words_response.json()
+        word_ids = [w['id'] for w in words[:3]]  # Use first 3 words
+        
+        # Generate task
+        task_data = {"word_ids": word_ids}
+        response = self.make_request('POST', 'tasks/generate', task_data, token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = ('id' in data and 'words' in data and 'schedule' in data and 
+                      len(data.get('schedule', [])) == 5 and data.get('status') == 'active')
+            # Check schedule has 3 learn days and 2 test days
+            if success:
+                schedule = data.get('schedule', [])
+                learn_days = sum(1 for day in schedule if day.get('type') == 'learn')
+                test_days = sum(1 for day in schedule if day.get('type') == 'test')
+                success = learn_days == 3 and test_days == 2
+            self.log_test("Generate Weekly Task", success, f"Task ID: {data.get('id', 'N/A')}")
+            if success:
+                self.test_task_id = data['id']
+            return success
+        self.log_test("Generate Weekly Task", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_get_active_task(self):
+        """Test getting active weekly task"""
+        response = self.make_request('GET', 'tasks/active', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = data is not None and 'id' in data and 'words' in data and 'schedule' in data
+            self.log_test("Get Active Task", success, f"Active task found: {data.get('id', 'N/A') if data else 'None'}")
+            return success
+        self.log_test("Get Active Task", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_complete_task_day(self):
+        """Test completing a task day"""
+        if not hasattr(self, 'test_task_id'):
+            self.log_test("Complete Task Day", False, "No task ID available")
+            return False
+            
+        response = self.make_request('PUT', f'tasks/{self.test_task_id}/day/1/complete', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = data.get('completed') == True
+            self.log_test("Complete Task Day", success)
+            return success
+        self.log_test("Complete Task Day", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
     # TEACHER TESTS
     def test_get_students(self):
         """Test teacher viewing all students"""
@@ -374,6 +458,16 @@ class SpellingQuestAPITester:
         self.test_check_grammar()
         self.test_save_game_session()
         self.test_get_game_sessions()
+
+        # Learn Feature Tests (NEW)
+        print("\n💡 Testing Learn Features...")
+        self.test_learn_meanings()
+
+        # Weekly Task Tests (NEW)
+        print("\n📅 Testing Weekly Task Features...")
+        self.test_generate_weekly_task()
+        self.test_get_active_task()
+        self.test_complete_task_day()
 
         # Teacher Tests
         print("\n👨‍🏫 Testing Teacher Dashboard...")

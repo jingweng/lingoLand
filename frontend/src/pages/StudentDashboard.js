@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
-import { Trophy, BookOpen, Gamepad2, Plus, Star, TrendingUp, Leaf } from 'lucide-react';
+import { Trophy, BookOpen, Gamepad2, Plus, Star, TrendingUp, Leaf, Lightbulb, CalendarDays, Check } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 const LEVEL_LABELS = ['New', 'Spelled', 'Meaning', 'Mastered'];
@@ -14,10 +14,12 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [activeTask, setActiveTask] = useState(null);
 
   useEffect(() => {
     api.get('/stats').then(r => setStats(r.data)).catch(() => {});
     api.get('/game/sessions').then(r => setSessions(r.data.slice(0, 5))).catch(() => {});
+    api.get('/tasks/active').then(r => { if (r.data) setActiveTask(r.data); }).catch(() => {});
   }, []);
 
   const masteryPct = stats ? (stats.level_counts?.['3'] || 0) / Math.max(stats.total_words, 1) * 100 : 0;
@@ -40,9 +42,55 @@ export default function StudentDashboard() {
             data-testid="play-now-btn"
             className="forest-btn flex items-center gap-2 text-lg"
           >
-            <Gamepad2 className="w-5 h-5" /> Play Now
+            <Gamepad2 className="w-5 h-5" /> Test Now
           </button>
         </div>
+
+        {/* Weekly Task */}
+        {activeTask && (
+          <div className="bg-white rounded-3xl border-4 border-[#FBC02D] shadow-[8px_8px_0_#F9A825] p-6" data-testid="weekly-task-widget">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-black text-[#F57F17] flex items-center gap-2">
+                <CalendarDays className="w-6 h-6" /> Weekly Task
+              </h2>
+              <span className="text-sm font-bold text-[#F57F17]/70">{activeTask.words.length} words</span>
+            </div>
+            <div className="flex gap-2 mb-4">
+              {activeTask.schedule.map((day) => (
+                <div
+                  key={day.day}
+                  className={`flex-1 p-3 rounded-2xl text-center border-2 transition-all ${
+                    day.completed
+                      ? 'bg-[#C8E6C9] border-[#4CAF50]'
+                      : 'bg-white border-[#E0E0E0]'
+                  }`}
+                >
+                  <div className="text-xs font-bold text-[#558B2F] uppercase">Day {day.day}</div>
+                  <div className={`text-xs font-black mt-1 ${day.type === 'learn' ? 'text-[#0288D1]' : 'text-[#E65100]'}`}>
+                    {day.type === 'learn' ? 'Learn' : 'Test'}
+                  </div>
+                  {day.completed && <Check className="w-4 h-4 text-[#4CAF50] mx-auto mt-1" />}
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => navigate('/learn')}
+                data-testid="task-learn-btn"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#0288D1] text-white font-bold hover:bg-[#0277BD] transition-colors"
+              >
+                <Lightbulb className="w-4 h-4" /> Learn
+              </button>
+              <button
+                onClick={() => navigate('/play')}
+                data-testid="task-test-btn"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#E65100] text-white font-bold hover:bg-[#BF360C] transition-colors"
+              >
+                <Gamepad2 className="w-4 h-4" /> Test
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">

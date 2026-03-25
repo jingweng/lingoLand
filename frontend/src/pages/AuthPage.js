@@ -43,10 +43,10 @@ export default function AuthPage() {
             <BookOpen className="w-10 h-10 text-[#2E7D32]" />
           </div>
           <h1 className="text-4xl sm:text-5xl font-black text-[#1B5E20] tracking-tight" data-testid="app-title">
-            Spelling Quest
+            Lingo Land
           </h1>
           <p className="text-lg font-bold text-[#558B2F] mt-1 flex items-center justify-center gap-1">
-            <TreePine className="w-5 h-5" /> Jason's Forest Adventure <Sparkles className="w-5 h-5" />
+            <TreePine className="w-5 h-5" /> Jason's Word Adventure <Sparkles className="w-5 h-5" />
           </p>
         </div>
 

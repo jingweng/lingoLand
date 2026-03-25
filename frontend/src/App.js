@@ -6,6 +6,7 @@ import StudentDashboard from "@/pages/StudentDashboard";
 import WordBank from "@/pages/WordBank";
 import PreGame from "@/pages/PreGame";
 import GamePlay from "@/pages/GamePlay";
+import LearnPage from "@/pages/LearnPage";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 
 function ProtectedRoute({ children, role }) {
@@ -35,6 +36,7 @@ function AppRoutes() {
       <Route path="/words" element={<ProtectedRoute role="student"><WordBank /></ProtectedRoute>} />
       <Route path="/play" element={<ProtectedRoute role="student"><PreGame /></ProtectedRoute>} />
       <Route path="/game" element={<ProtectedRoute role="student"><GamePlay /></ProtectedRoute>} />
+      <Route path="/learn" element={<ProtectedRoute role="student"><LearnPage /></ProtectedRoute>} />
       <Route path="/teacher" element={<ProtectedRoute role="teacher"><TeacherDashboard /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

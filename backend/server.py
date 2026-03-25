@@ -73,6 +73,9 @@ class ErrorLogSave(BaseModel):
     error_detail: str
     sentence: Optional[str] = None
 
+class WeeklyTaskGenerate(BaseModel):
+    word_ids: List[str]
+
 # --- Auth ---
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -291,23 +294,33 @@ async def check_grammar(data: SentenceCheck, user=Depends(auth_dependency)):
         msg = UserMessage(text=f"""Analyze this sentence by a K-6 student using the word "{data.target_word}":
 "{data.sentence}"
 
-Check for:
-1. Capitalization (sentence start, pronoun "I", proper nouns)
-2. Punctuation (must end with . ! or ?)
-3. Subject-verb agreement ("He go" -> "He goes")
-4. Tense consistency
-5. Homophones (there/their, to/too, its/it's, your/you're)
-6. Common K-6 spelling errors
-7. Run-on sentences, fragments, double negatives
-8. Article usage (a/an), pronoun case
+SCORING RULES:
+- If "{data.target_word}" is used CORRECTLY in a well-constructed, complex sentence: usage_points = 10
+- If "{data.target_word}" is NOT used, or used incorrectly/trivially: usage_points = 0
+- Deduct 1 point for EACH grammar or spelling error found
+- Total = max(0, usage_points - total_errors)
 
-Return this exact JSON structure:
-{{"uses_target_word": true, "word_count": 5, "spelling_errors": [{{"word": "bad", "correction": "good", "message": "friendly tip"}}], "grammar_errors": [{{"type": "Capitalization", "detail": "what is wrong", "message": "kid-friendly explanation"}}], "score_breakdown": {{"usage_points": 10, "length_points": 5, "spelling_penalty": 0, "grammar_penalty": 0, "total": 15}}}}
-Score: +10 if uses target word, +1 per word in sentence, -1 per spelling error, -1 per grammar error. Minimum total is 0.""")
+CHECK THESE GRAMMAR RULES (K-6 curriculum):
+CATEGORY A - Capitalization & Punctuation: sentence start capital, "I" capitalized, end with . ! ?, proper nouns capitalized, no random capitals, no excessive !!!
+CATEGORY B - Homophones: there/their/they're, to/too/two, its/it's, your/you're, loose/lose, no/know, where/wear/were, then/than, buy/by/bye
+CATEGORY C - Subject-Verb Agreement & Tense: singular/plural mix (dogs is→are), third person s (he walk→walks), irregular past (goed→went), double tense (did saw→saw), run-on sentences, fragments, double negatives (don't have no), progressive errors (am go→am going)
+CATEGORY D - Pronouns & Articles: me vs I (Me and Jason→Jason and I), a vs an (a apple→an apple), pronoun case (Can me go→Can I go), missing articles (saw dog→saw a dog)
+CATEGORY E - Common K-6 Spelling: alot→a lot, becuase→because, frend→friend, favrit→favorite, untill→until, beleive→believe, shool→school, thot→thought, beatiful→beautiful, cot→caught, pepal→people
+
+Return this exact JSON:
+{{"uses_target_word": true/false, "correct_usage": true/false, "word_count": number, "spelling_errors": [{{"word": "misspelled", "correction": "correct", "message": "kid-friendly tip"}}], "grammar_errors": [{{"type": "Category", "detail": "what is wrong", "message": "kid-friendly explanation"}}], "score_breakdown": {{"usage_points": 10 or 0, "grammar_penalty": total_error_count, "total": "max(0, usage_points - grammar_penalty)"}}}}
+Return ONLY valid JSON.""")
         response = await chat.send_message(msg)
         json_match = re.search(r'\{.*\}', response, re.DOTALL)
         if json_match:
             result = json.loads(json_match.group())
+            # Ensure total is calculated correctly
+            sb = result.get("score_breakdown", {})
+            usage = sb.get("usage_points", 0)
+            penalty = len(result.get("spelling_errors", [])) + len(result.get("grammar_errors", []))
+            sb["grammar_penalty"] = penalty
+            sb["total"] = max(0, usage - penalty)
+            result["score_breakdown"] = sb
             errors = result.get("spelling_errors", []) + result.get("grammar_errors", [])
             if errors:
                 await db.error_logs.insert_one({
@@ -331,10 +344,11 @@ def _fallback_grammar(sentence, target_word):
     usage_pts = 10 if uses else 0
     return {
         "uses_target_word": uses,
+        "correct_usage": uses,
         "word_count": wc,
         "spelling_errors": [],
         "grammar_errors": [],
-        "score_breakdown": {"usage_points": usage_pts, "length_points": wc, "spelling_penalty": 0, "grammar_penalty": 0, "total": usage_pts + wc}
+        "score_breakdown": {"usage_points": usage_pts, "grammar_penalty": 0, "total": usage_pts}
     }
 
 @api_router.post("/game/session")
@@ -380,6 +394,83 @@ async def get_stats(user=Depends(auth_dependency)):
     sessions = await db.game_sessions.find({"user_id": user["id"]}, {"_id": 0, "total_score": 1}).to_list(1000)
     total_score = sum(s.get("total_score", 0) for s in sessions)
     return {"total_words": total, "level_counts": level_counts, "total_sessions": len(sessions), "total_score": total_score}
+
+# --- Learn ---
+@api_router.post("/learn/meanings")
+async def get_learn_meanings(data: DefinitionRequest, user=Depends(auth_dependency)):
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"learn-{uuid.uuid4()}", system_message="You are a vocabulary teacher for K-6 students. Return JSON only, no markdown.")
+        chat.with_model("openai", "gpt-5.2")
+        msg = UserMessage(text=f"""Provide exactly 3 definitions for the word "{data.word}", each with a sample sentence.
+Return JSON: {{"word": "{data.word}", "meanings": [{{"definition": "simple definition", "sentence": "Example sentence using {data.word}."}}, {{"definition": "...", "sentence": "..."}}, {{"definition": "...", "sentence": "..."}}]}}
+Keep definitions simple for K-6 students. Return ONLY JSON.""")
+        response = await chat.send_message(msg)
+        json_match = re.search(r'\{.*\}', response, re.DOTALL)
+        if json_match:
+            result = json.loads(json_match.group())
+            if "meanings" in result:
+                return result
+        return _fallback_learn_meanings(data.word)
+    except Exception as e:
+        logger.error(f"Learn meanings error: {e}")
+        return _fallback_learn_meanings(data.word)
+
+def _fallback_learn_meanings(word):
+    return {
+        "word": word,
+        "meanings": [
+            {"definition": f"A common meaning of {word}", "sentence": f"I use {word} every day."},
+            {"definition": f"Another way to understand {word}", "sentence": f"The teacher explained {word} to us."},
+            {"definition": f"A related meaning of {word}", "sentence": f"We learned about {word} in class."}
+        ]
+    }
+
+# --- Weekly Tasks ---
+@api_router.post("/tasks/generate")
+async def generate_weekly_task(data: WeeklyTaskGenerate, user=Depends(auth_dependency)):
+    await db.weekly_tasks.update_many(
+        {"user_id": user["id"], "status": "active"},
+        {"$set": {"status": "completed"}}
+    )
+    words = []
+    for wid in data.word_ids:
+        word = await db.words.find_one({"id": wid, "user_id": user["id"]}, {"_id": 0})
+        if word:
+            words.append({"id": word["id"], "word": word["word"]})
+    if not words:
+        raise HTTPException(400, "No valid words selected")
+    task = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["id"],
+        "words": words,
+        "schedule": [
+            {"day": i + 1, "type": "learn" if i < 3 else "test", "completed": False}
+            for i in range(5)
+        ],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active"
+    }
+    await db.weekly_tasks.insert_one(task)
+    return {"id": task["id"], "words": task["words"], "schedule": task["schedule"], "status": task["status"], "created_at": task["created_at"]}
+
+@api_router.get("/tasks/active")
+async def get_active_task(user=Depends(auth_dependency)):
+    task = await db.weekly_tasks.find_one({"user_id": user["id"], "status": "active"}, {"_id": 0})
+    return task
+
+@api_router.put("/tasks/{task_id}/day/{day_num}/complete")
+async def complete_task_day(task_id: str, day_num: int, user=Depends(auth_dependency)):
+    result = await db.weekly_tasks.update_one(
+        {"id": task_id, "user_id": user["id"], "schedule.day": day_num},
+        {"$set": {"schedule.$.completed": True}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Task not found")
+    task = await db.weekly_tasks.find_one({"id": task_id}, {"_id": 0})
+    if task and all(d["completed"] for d in task["schedule"]):
+        await db.weekly_tasks.update_one({"id": task_id}, {"$set": {"status": "completed"}})
+    return {"completed": True}
 
 # --- Teacher ---
 @api_router.get("/teacher/students")

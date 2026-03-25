@@ -1,6 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, TreePine, LogOut, Gamepad2, GraduationCap, Library } from 'lucide-react';
+import { BookOpen, TreePine, LogOut, Gamepad2, GraduationCap, Library, Lightbulb } from 'lucide-react';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -14,7 +14,8 @@ export default function Layout({ children }) {
     : [
         { path: '/dashboard', label: 'Home', icon: TreePine },
         { path: '/words', label: 'Word Bank', icon: Library },
-        { path: '/play', label: 'Play', icon: Gamepad2 },
+        { path: '/learn', label: 'Learn', icon: Lightbulb },
+        { path: '/play', label: 'Test', icon: Gamepad2 },
       ];
 
   return (
@@ -28,7 +29,7 @@ export default function Layout({ children }) {
               data-testid="nav-logo"
             >
               <BookOpen className="w-8 h-8 text-[#2E7D32] group-hover:animate-wiggle" />
-              <span className="font-black text-xl text-[#1B5E20] hidden sm:block">Spelling Quest</span>
+              <span className="font-black text-xl text-[#1B5E20] hidden sm:block">Lingo Land</span>
             </button>
 
             <div className="flex items-center gap-1 sm:gap-2">
