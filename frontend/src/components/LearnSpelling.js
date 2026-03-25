@@ -2,9 +2,15 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, SkipForward, RotateCcw, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { speak } from '@/lib/sounds';
 
-const syllabify = (w) => {
-  const parts = w.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi);
-  return parts ? parts.join(' · ') : w;
+const getSyllables = (word) => {
+  if (!word) return [word || ""];
+  const pattern = /[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi;
+  let parts = word.match(pattern) || [word];
+  if (word.toLowerCase().endsWith('e') && !/[aeiouy]e$/i.test(word) && parts.length > 1) {
+    const last = parts.pop();
+    parts[parts.length - 1] += last;
+  }
+  return parts;
 };
 
 export default function LearnSpelling({ words, onFinish }) {
@@ -16,8 +22,8 @@ export default function LearnSpelling({ words, onFinish }) {
   const cancelRef = useRef(false);
 
   const word = words[index]?.word || '';
-  const syllables = syllabify(word).split(' · ');
-  const fontClass = word.length < 10 ? 'text-5xl' : 'text-3xl';
+  const syllables = getSyllables(word);
+  const fontClass = word.length > 12 ? 'text-3xl' : 'text-5xl';
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -100,7 +106,7 @@ export default function LearnSpelling({ words, onFinish }) {
 
       {/* Syllable Display */}
       <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-8 text-center" data-testid="syllable-card">
-        <div className={`flex justify-center items-baseline gap-1 flex-wrap mb-6 ${fontClass} font-black tracking-wide transition-all duration-300`}>
+        <div className={`flex justify-center items-baseline gap-1 flex-wrap mb-6 ${fontClass} font-black tracking-wide transition-all duration-300 whitespace-nowrap`}>
           {syllables.map((syl, i) => (
             <span
               key={i}
@@ -112,9 +118,12 @@ export default function LearnSpelling({ words, onFinish }) {
               }`}
             >
               {syl}
-              {i < syllables.length - 1 && <span className="text-gray-300 mx-1">&middot;</span>}
             </span>
-          ))}
+          )).reduce((acc, el, i) => {
+            if (i > 0) acc.push(<span key={`sep-${i}`} className="text-gray-300 mx-1"> · </span>);
+            acc.push(el);
+            return acc;
+          }, [])}
         </div>
 
         {isPlaying && (

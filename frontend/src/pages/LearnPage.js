@@ -6,9 +6,15 @@ import LearnSpelling from '@/components/LearnSpelling';
 import LearnMeaning from '@/components/LearnMeaning';
 import { BookOpen, Brain, Check, ArrowRight, Lightbulb, Volume2 } from 'lucide-react';
 
-const syllabify = (word) => {
-  const parts = word.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi);
-  return parts ? parts.join(' · ') : word;
+const getSyllables = (word) => {
+  if (!word) return [word || ""];
+  const pattern = /[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi;
+  let parts = word.match(pattern) || [word];
+  if (word.toLowerCase().endsWith('e') && !/[aeiouy]e$/i.test(word) && parts.length > 1) {
+    const last = parts.pop();
+    parts[parts.length - 1] += last;
+  }
+  return parts;
 };
 
 export default function LearnPage() {
@@ -161,8 +167,10 @@ export default function LearnPage() {
                   <span className="font-black text-[#1B5E20] capitalize">{w.word}</span>
                   {selected.has(w.id) && <Check className="w-5 h-5 text-[#2E7D32]" />}
                 </div>
-                <p className="text-[10px] font-bold text-[#558B2F] uppercase tracking-widest text-center mt-1">
-                  {syllabify(w.word)}
+                <p className="text-[10px] font-bold text-[#558B2F] uppercase tracking-widest text-center mt-1 whitespace-nowrap">
+                  {getSyllables(w.word).map((syl, i, arr) => (
+                    <span key={i}>{syl}{i < arr.length - 1 && <span className="text-[#A5D6A7] mx-0.5"> · </span>}</span>
+                  ))}
                 </p>
               </button>
             ))}
