@@ -7,24 +7,40 @@ import LearnMeaning from '@/components/LearnMeaning';
 import { BookOpen, Brain, Check, ArrowRight, Lightbulb, Volume2 } from 'lucide-react';
 
 const getSyllables = (word) => {
-  if (!word) return [word || ""];
-  const pattern = /[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi;
-  let parts = word.match(pattern) || [word];
-  if (parts.length < 2) return parts;
-  const last = parts[parts.length - 1];
-  if (/^le$/i.test(last) && parts.length >= 2) {
-    const prev = parts[parts.length - 2];
-    if (prev.length >= 2) {
-      parts[parts.length - 2] = prev.slice(0, -1);
-      parts[parts.length - 1] = prev.slice(-1) + last;
-      return parts;
+  if (!word) return [];
+  const w = word.toLowerCase();
+
+  // 1. PREFIX PROTECTION (Fixes CO-EXIST, RE-ELECT)
+  const prefixes = ['co', 're', 'pre', 'un', 'dis'];
+  for (let p of prefixes) {
+    if (w.startsWith(p) && ['a','e','i','o','u'].includes(w[p.length])) {
+      return [p.toUpperCase(), ...getSyllables(word.slice(p.length))];
     }
   }
-  if (/^[^aeiouy]+e[sd]?$/i.test(last)) {
-    const merged = parts.pop();
-    parts[parts.length - 1] += merged;
+
+  // 2. CONSONANT + LE RULE (The "Bottle" / "Puddle" Fix)
+  // We look for any consonant followed by 'le' at the very end
+  const cleMatch = w.match(/([^aeiou])le$/);
+  if (cleMatch && w.length > 3) {
+    const splitIndex = w.length - 3; // Captures [Consonant] + l + e
+    const firstPart = word.slice(0, splitIndex);
+    const secondPart = word.slice(splitIndex);
+    return [...getSyllables(firstPart), secondPart.toUpperCase()];
   }
-  return parts;
+
+  // 3. SUFFIX PROTECTION (Fixes STALACTITES, ACTIVATE)
+  const suffixes = ['tites', 'vate', 'mite', 'lete', 'sive'];
+  for (let s of suffixes) {
+    if (w.endsWith(s)) {
+      const base = word.slice(0, -s.length);
+      return [...getSyllables(base), s.toUpperCase()];
+    }
+  }
+
+  // 4. FALLBACK: Standard vowel-based splitting
+  const pattern = /[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi;
+  const syllables = word.match(pattern);
+  return syllables ? syllables.map(s => s.toUpperCase()) : [word.toUpperCase()];
 };
 
 export default function LearnPage() {
