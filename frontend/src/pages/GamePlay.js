@@ -25,6 +25,7 @@ export default function GamePlay() {
   const location = useLocation();
   const navigate = useNavigate();
   const gameWords = useMemo(() => location.state?.words || [], [location.state]);
+  const selectedLevels = useMemo(() => new Set(location.state?.selectedLevels || [1, 2, 3]), [location.state]);
 
   const [wordIndex, setWordIndex] = useState(0);
   const [currentLevel, setCurrentLevel] = useState(null);
@@ -36,10 +37,17 @@ export default function GamePlay() {
   const [danceTime, setDanceTime] = useState(3);
   const [gameComplete, setGameComplete] = useState(false);
 
-  // Determine starting level for current word
+  // Determine starting level for current word (respecting selectedLevels)
   const getStartLevel = useCallback((word) => {
-    return Math.min((word.level || 0) + 1, 3);
-  }, []);
+    const natural = Math.min((word.level || 0) + 1, 3);
+    // Find the first selected level >= natural level
+    for (let l = natural; l <= 3; l++) {
+      if (selectedLevels.has(l)) return l;
+    }
+    // If none found above natural, pick the lowest selected level
+    const sorted = [...selectedLevels].sort((a, b) => a - b);
+    return sorted[0] || 1;
+  }, [selectedLevels]);
 
   useEffect(() => {
     if (gameWords.length === 0) { navigate('/play'); return; }
@@ -82,8 +90,13 @@ export default function GamePlay() {
 
   const advanceGame = () => {
     setShowReward(false);
-    if (currentLevel < 3) {
-      setCurrentLevel(prev => prev + 1);
+    // Find next selected level above current
+    let nextLevel = null;
+    for (let l = currentLevel + 1; l <= 3; l++) {
+      if (selectedLevels.has(l)) { nextLevel = l; break; }
+    }
+    if (nextLevel) {
+      setCurrentLevel(nextLevel);
       playLevelUp();
     } else {
       // Move to next word

@@ -371,6 +371,22 @@ async def save_game_session(data: GameSessionSave, user=Depends(auth_dependency)
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     await db.game_sessions.insert_one(session)
+
+    # Auto-log activity
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    words_spelled = sum(1 for w in data.words_played if w.get("level") == 1 and not w.get("failed"))
+    meanings_learned = sum(1 for w in data.words_played if w.get("level") == 2 and not w.get("failed"))
+    levels_passed = len(data.levels_completed)
+    await db.activity_logs.update_one(
+        {"user_id": user["id"], "date": today},
+        {"$inc": {
+            "words_spelled": words_spelled,
+            "meanings_learned": meanings_learned,
+            "levels_passed": levels_passed,
+        }, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+
     return {"saved": True, "session_id": session["id"]}
 
 @api_router.get("/game/sessions")

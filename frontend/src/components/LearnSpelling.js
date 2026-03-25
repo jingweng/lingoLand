@@ -2,8 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Volume2, SkipForward, RotateCcw, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { speak } from '@/lib/sounds';
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
 const syllabify = (w) => {
   const parts = w.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi);
   return parts ? parts.join(' · ') : w;
@@ -11,57 +9,63 @@ const syllabify = (w) => {
 
 export default function LearnSpelling({ words, onFinish }) {
   const [index, setIndex] = useState(0);
-  const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [activeIdx, setActiveIdx] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [done, setDone] = useState(false);
+  const timerRef = useRef(null);
   const cancelRef = useRef(false);
 
   const word = words[index]?.word || '';
+  const syllables = syllabify(word).split(' · ');
+  const fontClass = word.length < 10 ? 'text-5xl' : 'text-3xl';
 
-  const playSpelling = useCallback(async () => {
-    if (isPlaying) return;
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    cancelRef.current = true;
+    window.speechSynthesis?.cancel();
+  }, []);
+
+  const playSyllables = useCallback(() => {
+    clearTimer();
     cancelRef.current = false;
+    setActiveIdx(-1);
     setIsPlaying(true);
-    setHighlightIndex(-1);
 
-    // Read the whole word
+    let i = 0;
+    // Speak full word first
     speak(word, 0.6);
-    await sleep(1500);
-    if (cancelRef.current) { setIsPlaying(false); return; }
 
-    // Spell letter by letter
-    for (let i = 0; i < word.length; i++) {
-      if (cancelRef.current) break;
-      setHighlightIndex(i);
-      speak(word[i].toUpperCase(), 0.85);
-      await sleep(700);
-    }
-
-    if (!cancelRef.current) {
-      // Read the whole word again
-      await sleep(500);
-      speak(word, 0.7);
-    }
-
-    setIsPlaying(false);
-  }, [word, isPlaying]);
+    timerRef.current = setInterval(() => {
+      if (cancelRef.current) { clearInterval(timerRef.current); timerRef.current = null; setIsPlaying(false); return; }
+      if (i < syllables.length) {
+        setActiveIdx(i);
+        speak(syllables[i], 0.85);
+        i++;
+      } else {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setActiveIdx(-1);
+        setIsPlaying(false);
+      }
+    }, 1000);
+  }, [word, syllables, clearTimer]);
 
   useEffect(() => {
-    cancelRef.current = true;
-    setHighlightIndex(-1);
+    clearTimer();
+    setActiveIdx(-1);
     setIsPlaying(false);
-    const timer = setTimeout(() => playSpelling(), 600);
-    return () => { cancelRef.current = true; clearTimeout(timer); };
+    const t = setTimeout(() => playSyllables(), 600);
+    return () => { clearTimer(); clearTimeout(t); };
   }, [index]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRepeat = () => {
-    cancelRef.current = true;
-    setTimeout(() => playSpelling(), 200);
+    playSyllables();
   };
 
   const handlePass = () => {
-    cancelRef.current = true;
-    window.speechSynthesis?.cancel();
+    clearTimer();
+    setActiveIdx(-1);
+    setIsPlaying(false);
     if (index + 1 < words.length) {
       setIndex(prev => prev + 1);
     } else {
@@ -94,26 +98,22 @@ export default function LearnSpelling({ words, onFinish }) {
         </div>
       </div>
 
-      {/* Word Display */}
-      <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-8 text-center">
-        <p className="text-xs font-bold text-[#558B2F] uppercase tracking-widest text-center mb-4" data-testid="syllable-view">
-          {syllabify(word)}
-        </p>
-        <div className="flex justify-center gap-2 sm:gap-3 flex-wrap mb-6">
-          {word.split('').map((letter, i) => (
-            <div
+      {/* Syllable Display */}
+      <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-8 text-center" data-testid="syllable-card">
+        <div className={`flex justify-center items-baseline gap-1 flex-wrap mb-6 ${fontClass} font-black tracking-wide transition-all duration-300`}>
+          {syllables.map((syl, i) => (
+            <span
               key={i}
-              data-testid={`spell-letter-${i}`}
-              className={`w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center rounded-2xl text-2xl sm:text-3xl font-black uppercase transition-all duration-300 ${
-                highlightIndex === i
-                  ? 'bg-[#2E7D32] text-white border-4 border-[#1B5E20] scale-110 shadow-lg'
-                  : highlightIndex > i
-                  ? 'bg-[#C8E6C9] text-[#2E7D32] border-4 border-[#A5D6A7]'
-                  : 'bg-[#F1F8E9] text-[#A5D6A7] border-4 border-[#C8E6C9]'
+              data-testid={`syllable-${i}`}
+              className={`transition-all duration-300 ${
+                i === activeIdx
+                  ? 'text-[#1B5E20] font-black scale-110 inline-block'
+                  : 'text-gray-400'
               }`}
             >
-              {highlightIndex >= i ? letter : ''}
-            </div>
+              {syl}
+              {i < syllables.length - 1 && <span className="text-gray-300 mx-1">&middot;</span>}
+            </span>
           ))}
         </div>
 

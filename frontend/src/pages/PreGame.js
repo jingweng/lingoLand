@@ -19,6 +19,7 @@ export default function PreGame() {
   const [words, setWords] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [filterLevel, setFilterLevel] = useState(null);
+  const [selectedLevels, setSelectedLevels] = useState(new Set([1, 2, 3]));
 
   useEffect(() => {
     api.get('/words').then(r => setWords(r.data)).catch(() => {});
@@ -40,10 +41,18 @@ export default function PreGame() {
     setSelected(prev => prev.size === ids.length ? new Set() : new Set(ids));
   };
 
+  const toggleLevel = (lvl) => {
+    setSelectedLevels(prev => {
+      const next = new Set(prev);
+      next.has(lvl) ? next.delete(lvl) : next.add(lvl);
+      return next;
+    });
+  };
+
   const startGame = () => {
     const gameWords = words.filter(w => selected.has(w.id));
-    if (gameWords.length === 0) return;
-    navigate('/game', { state: { words: gameWords } });
+    if (gameWords.length === 0 || selectedLevels.size === 0) return;
+    navigate('/game', { state: { words: gameWords, selectedLevels: [...selectedLevels] } });
   };
 
   return (
@@ -132,16 +141,39 @@ export default function PreGame() {
           </div>
         </div>
 
+        {/* Level Selection */}
+        <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-5">
+          <h3 className="font-black text-[#1B5E20] mb-3">Choose Levels to Play</h3>
+          <div className="flex flex-wrap gap-3">
+            {LEVEL_GOALS.map(g => (
+              <button
+                key={g.level}
+                onClick={() => toggleLevel(g.level)}
+                data-testid={`level-toggle-${g.level}`}
+                className={`flex items-center gap-2 px-4 py-3 rounded-2xl border-4 font-bold transition-all ${
+                  selectedLevels.has(g.level)
+                    ? 'border-[#2E7D32] bg-[#E8F5E9] shadow-[0_4px_0_#1B5E20] text-[#1B5E20]'
+                    : 'border-[#C8E6C9] bg-white text-[#90A4AE] hover:border-[#66BB6A]'
+                }`}
+              >
+                <g.icon className="w-5 h-5" style={{ color: selectedLevels.has(g.level) ? g.color : '#90A4AE' }} />
+                <span>Lvl {g.level}: {g.title}</span>
+                {selectedLevels.has(g.level) && <Check className="w-5 h-5 text-[#2E7D32]" />}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Start Button */}
         <div className="text-center">
           <button
             onClick={startGame}
-            disabled={selected.size === 0}
+            disabled={selected.size === 0 || selectedLevels.size === 0}
             data-testid="start-game-btn"
             className="forest-btn text-xl px-12 py-5 disabled:opacity-40 flex items-center gap-3 mx-auto"
           >
             <Gamepad2 className="w-6 h-6" />
-            Start Game ({selected.size} word{selected.size !== 1 ? 's' : ''})
+            Start Game ({selected.size} word{selected.size !== 1 ? 's' : ''}, {selectedLevels.size} level{selectedLevels.size !== 1 ? 's' : ''})
             <ArrowRight className="w-6 h-6" />
           </button>
         </div>
