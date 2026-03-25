@@ -345,8 +345,20 @@ class SpellingQuestAPITester:
             self.log_test("Generate Weekly Task", success, f"Task ID: {data.get('id', 'N/A')}")
             if success:
                 self.test_task_id = data['id']
+                self.test_word_id_for_task = word_ids[0] if word_ids else None
             return success
         self.log_test("Generate Weekly Task", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_get_all_tasks(self):
+        """Test getting all user tasks (NEW ITERATION 3)"""
+        response = self.make_request('GET', 'tasks', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = isinstance(data, list) and len(data) >= 0
+            self.log_test("Get All Tasks", success, f"Found: {len(data)} tasks")
+            return success
+        self.log_test("Get All Tasks", False, f"Status: {response.status_code if response else 'No response'}")
         return False
 
     def test_get_active_task(self):
@@ -358,6 +370,52 @@ class SpellingQuestAPITester:
             self.log_test("Get Active Task", success, f"Active task found: {data.get('id', 'N/A') if data else 'None'}")
             return success
         self.log_test("Get Active Task", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_rename_task(self):
+        """Test renaming a task (NEW ITERATION 3)"""
+        if not hasattr(self, 'test_task_id'):
+            self.log_test("Rename Task", False, "No task ID available")
+            return False
+            
+        rename_data = {"name": "My Renamed Test Task"}
+        response = self.make_request('PUT', f'tasks/{self.test_task_id}/rename', rename_data, token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = data.get('renamed') == True
+            self.log_test("Rename Task", success)
+            return success
+        self.log_test("Rename Task", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_toggle_word_learn_status(self):
+        """Test toggling word learn status (NEW ITERATION 3)"""
+        if not hasattr(self, 'test_task_id') or not hasattr(self, 'test_word_id_for_task'):
+            self.log_test("Toggle Word Learn Status", False, "No task ID or word ID available")
+            return False
+            
+        response = self.make_request('PUT', f'tasks/{self.test_task_id}/word/{self.test_word_id_for_task}/toggle?type=learn', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = data.get('toggled') == True
+            self.log_test("Toggle Word Learn Status", success)
+            return success
+        self.log_test("Toggle Word Learn Status", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_toggle_word_test_status(self):
+        """Test toggling word test status (NEW ITERATION 3)"""
+        if not hasattr(self, 'test_task_id') or not hasattr(self, 'test_word_id_for_task'):
+            self.log_test("Toggle Word Test Status", False, "No task ID or word ID available")
+            return False
+            
+        response = self.make_request('PUT', f'tasks/{self.test_task_id}/word/{self.test_word_id_for_task}/toggle?type=test', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = data.get('toggled') == True
+            self.log_test("Toggle Word Test Status", success)
+            return success
+        self.log_test("Toggle Word Test Status", False, f"Status: {response.status_code if response else 'No response'}")
         return False
 
     def test_complete_task_day(self):
@@ -373,6 +431,48 @@ class SpellingQuestAPITester:
             self.log_test("Complete Task Day", success)
             return success
         self.log_test("Complete Task Day", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    # ACTIVITY TRACKING TESTS (NEW ITERATION 3)
+    def test_log_activity(self):
+        """Test logging daily activity (NEW ITERATION 3)"""
+        activity_data = {
+            "words_spelled": 5,
+            "meanings_learned": 3,
+            "levels_passed": 2,
+            "time_spent_seconds": 300
+        }
+        response = self.make_request('POST', 'activity/log', activity_data, token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            success = data.get('logged') == True
+            self.log_test("Log Activity", success)
+            return success
+        self.log_test("Log Activity", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_get_today_activity(self):
+        """Test getting today's activity stats (NEW ITERATION 3)"""
+        response = self.make_request('GET', 'activity/today', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            required_keys = ['words_spelled', 'meanings_learned', 'levels_passed', 'time_spent_seconds']
+            success = all(key in data for key in required_keys)
+            self.log_test("Get Today Activity", success, f"Words: {data.get('words_spelled', 0)}, Meanings: {data.get('meanings_learned', 0)}")
+            return success
+        self.log_test("Get Today Activity", False, f"Status: {response.status_code if response else 'No response'}")
+        return False
+
+    def test_get_weekly_progress(self):
+        """Test getting weekly goal progress (NEW ITERATION 3)"""
+        response = self.make_request('GET', 'activity/weekly', token=self.student_token)
+        if response and response.status_code == 200:
+            data = response.json()
+            required_keys = ['total_words', 'learn_done', 'test_done', 'percentage']
+            success = all(key in data for key in required_keys)
+            self.log_test("Get Weekly Progress", success, f"Progress: {data.get('percentage', 0)}%")
+            return success
+        self.log_test("Get Weekly Progress", False, f"Status: {response.status_code if response else 'No response'}")
         return False
 
     # TEACHER TESTS
@@ -466,8 +566,18 @@ class SpellingQuestAPITester:
         # Weekly Task Tests (NEW)
         print("\n📅 Testing Weekly Task Features...")
         self.test_generate_weekly_task()
+        self.test_get_all_tasks()
         self.test_get_active_task()
+        self.test_rename_task()
+        self.test_toggle_word_learn_status()
+        self.test_toggle_word_test_status()
         self.test_complete_task_day()
+
+        # Activity Tracking Tests (NEW ITERATION 3)
+        print("\n📊 Testing Activity Tracking Features...")
+        self.test_log_activity()
+        self.test_get_today_activity()
+        self.test_get_weekly_progress()
 
         # Teacher Tests
         print("\n👨‍🏫 Testing Teacher Dashboard...")

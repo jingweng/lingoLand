@@ -1,6 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, TreePine, LogOut, Gamepad2, GraduationCap, Library, Lightbulb } from 'lucide-react';
+import { BookOpen, TreePine, LogOut, Gamepad2, GraduationCap, Library, Lightbulb, ClipboardList } from 'lucide-react';
 
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
@@ -16,6 +16,7 @@ export default function Layout({ children }) {
         { path: '/words', label: 'Word Bank', icon: Library },
         { path: '/learn', label: 'Learn', icon: Lightbulb },
         { path: '/play', label: 'Test', icon: Gamepad2 },
+        { path: '/tasks', label: 'My Tasks', icon: ClipboardList },
       ];
 
   return (

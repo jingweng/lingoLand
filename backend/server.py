@@ -76,6 +76,15 @@ class ErrorLogSave(BaseModel):
 class WeeklyTaskGenerate(BaseModel):
     word_ids: List[str]
 
+class TaskRename(BaseModel):
+    name: str
+
+class ActivityLog(BaseModel):
+    words_spelled: int = 0
+    meanings_learned: int = 0
+    levels_passed: int = 0
+    time_spent_seconds: int = 0
+
 # --- Auth ---
 def hash_password(password: str) -> str:
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -437,12 +446,17 @@ async def generate_weekly_task(data: WeeklyTaskGenerate, user=Depends(auth_depen
     for wid in data.word_ids:
         word = await db.words.find_one({"id": wid, "user_id": user["id"]}, {"_id": 0})
         if word:
-            words.append({"id": word["id"], "word": word["word"]})
+            words.append({"id": word["id"], "word": word["word"], "learn_complete": False, "test_complete": False})
     if not words:
         raise HTTPException(400, "No valid words selected")
+    from datetime import timedelta
+    today = datetime.now(timezone.utc)
+    monday = today - timedelta(days=today.weekday())
+    default_name = f"Task {monday.strftime('%B %d, %Y')}"
     task = {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
+        "name": default_name,
         "words": words,
         "schedule": [
             {"day": i + 1, "type": "learn" if i < 3 else "test", "completed": False}
@@ -452,12 +466,43 @@ async def generate_weekly_task(data: WeeklyTaskGenerate, user=Depends(auth_depen
         "status": "active"
     }
     await db.weekly_tasks.insert_one(task)
-    return {"id": task["id"], "words": task["words"], "schedule": task["schedule"], "status": task["status"], "created_at": task["created_at"]}
+    return {k: v for k, v in task.items() if k != "_id"}
+
+@api_router.get("/tasks")
+async def get_all_tasks(user=Depends(auth_dependency)):
+    tasks = await db.weekly_tasks.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    return tasks
 
 @api_router.get("/tasks/active")
 async def get_active_task(user=Depends(auth_dependency)):
     task = await db.weekly_tasks.find_one({"user_id": user["id"], "status": "active"}, {"_id": 0})
     return task
+
+@api_router.put("/tasks/{task_id}/rename")
+async def rename_task(task_id: str, data: TaskRename, user=Depends(auth_dependency)):
+    result = await db.weekly_tasks.update_one(
+        {"id": task_id, "user_id": user["id"]},
+        {"$set": {"name": data.name}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(404, "Task not found")
+    return {"renamed": True}
+
+@api_router.put("/tasks/{task_id}/word/{word_id}/toggle")
+async def toggle_task_word(task_id: str, word_id: str, type: str = "learn", user=Depends(auth_dependency)):
+    field = "learn_complete" if type == "learn" else "test_complete"
+    task = await db.weekly_tasks.find_one({"id": task_id, "user_id": user["id"]}, {"_id": 0})
+    if not task:
+        raise HTTPException(404, "Task not found")
+    for w in task.get("words", []):
+        if w["id"] == word_id:
+            w[field] = not w.get(field, False)
+            break
+    await db.weekly_tasks.update_one(
+        {"id": task_id, "user_id": user["id"]},
+        {"$set": {"words": task["words"]}}
+    )
+    return {"toggled": True}
 
 @api_router.put("/tasks/{task_id}/day/{day_num}/complete")
 async def complete_task_day(task_id: str, day_num: int, user=Depends(auth_dependency)):
@@ -471,6 +516,48 @@ async def complete_task_day(task_id: str, day_num: int, user=Depends(auth_depend
     if task and all(d["completed"] for d in task["schedule"]):
         await db.weekly_tasks.update_one({"id": task_id}, {"$set": {"status": "completed"}})
     return {"completed": True}
+
+# --- Activity Tracking ---
+@api_router.post("/activity/log")
+async def log_activity(data: ActivityLog, user=Depends(auth_dependency)):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    await db.activity_logs.update_one(
+        {"user_id": user["id"], "date": today},
+        {"$inc": {
+            "words_spelled": data.words_spelled,
+            "meanings_learned": data.meanings_learned,
+            "levels_passed": data.levels_passed,
+            "time_spent_seconds": data.time_spent_seconds
+        }, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"logged": True}
+
+@api_router.get("/activity/today")
+async def get_today_activity(user=Depends(auth_dependency)):
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    doc = await db.activity_logs.find_one({"user_id": user["id"], "date": today}, {"_id": 0})
+    if not doc:
+        return {"words_spelled": 0, "meanings_learned": 0, "levels_passed": 0, "time_spent_seconds": 0}
+    return {"words_spelled": doc.get("words_spelled", 0), "meanings_learned": doc.get("meanings_learned", 0), "levels_passed": doc.get("levels_passed", 0), "time_spent_seconds": doc.get("time_spent_seconds", 0)}
+
+@api_router.get("/activity/weekly")
+async def get_weekly_progress(user=Depends(auth_dependency)):
+    tasks = await db.weekly_tasks.find({"user_id": user["id"], "status": "active"}, {"_id": 0}).to_list(100)
+    total_words = 0
+    learn_done = 0
+    test_done = 0
+    for task in tasks:
+        for w in task.get("words", []):
+            total_words += 1
+            if w.get("learn_complete"):
+                learn_done += 1
+            if w.get("test_complete"):
+                test_done += 1
+    total_items = total_words * 2
+    done_items = learn_done + test_done
+    pct = (done_items / max(total_items, 1)) * 100
+    return {"total_words": total_words, "learn_done": learn_done, "test_done": test_done, "percentage": round(pct, 1)}
 
 # --- Teacher ---
 @api_router.get("/teacher/students")

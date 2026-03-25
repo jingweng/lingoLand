@@ -26,6 +26,7 @@ export default function WordBank() {
   const [importing, setImporting] = useState(false);
   const [taskSelected, setTaskSelected] = useState(new Set());
   const [generatingTask, setGeneratingTask] = useState(false);
+  const [lastCheckedIdx, setLastCheckedIdx] = useState(null);
 
   const fetchWords = useCallback(async () => {
     const params = {};
@@ -74,12 +75,25 @@ export default function WordBank() {
     setImporting(false);
   };
 
-  const toggleTaskWord = (id) => {
-    setTaskSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const toggleTaskWord = (id, idx, event) => {
+    if (event?.shiftKey && lastCheckedIdx !== null) {
+      const start = Math.min(lastCheckedIdx, idx);
+      const end = Math.max(lastCheckedIdx, idx);
+      setTaskSelected(prev => {
+        const next = new Set(prev);
+        for (let i = start; i <= end; i++) {
+          next.add(sorted[i].id);
+        }
+        return next;
+      });
+    } else {
+      setTaskSelected(prev => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+      });
+    }
+    setLastCheckedIdx(idx);
   };
 
   const generateWeeklyTask = async () => {
@@ -215,11 +229,11 @@ export default function WordBank() {
 
         {/* Word List */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" data-testid="word-list">
-          {sorted.map(w => (
+          {sorted.map((w, idx) => (
             <div key={w.id} className="bg-white rounded-2xl border-4 border-[#C8E6C9] p-4 flex items-center justify-between hover:border-[#66BB6A] transition-all group">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => toggleTaskWord(w.id)}
+                  onClick={(e) => toggleTaskWord(w.id, idx, e)}
                   data-testid={`task-check-${w.word}`}
                   className="text-[#A5D6A7] hover:text-[#2E7D32] transition-colors shrink-0"
                 >

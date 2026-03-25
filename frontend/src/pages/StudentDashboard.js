@@ -3,11 +3,30 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
-import { Trophy, BookOpen, Gamepad2, Plus, Star, TrendingUp, Leaf, Lightbulb, CalendarDays, Check } from 'lucide-react';
+import { Trophy, BookOpen, Gamepad2, Plus, Star, TrendingUp, Leaf, Lightbulb, CalendarDays, Check, Clock, Brain, PenTool, Target } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 const LEVEL_LABELS = ['New', 'Spelled', 'Meaning', 'Mastered'];
 const LEVEL_COLORS = ['#90A4AE', '#FBC02D', '#66BB6A', '#FF8F00'];
+
+function CircularProgress({ percentage, size = 100, strokeWidth = 10, color = '#2E7D32' }) {
+  const r = (size - strokeWidth) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c - (Math.min(percentage, 100) / 100) * c;
+  return (
+    <div className="relative inline-flex items-center justify-center">
+      <svg width={size} height={size}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#E8F5E9" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
+          transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: 'stroke-dashoffset 0.8s ease' }} />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-lg font-black text-[#1B5E20]">{Math.round(percentage)}%</span>
+      </div>
+    </div>
+  );
+}
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -15,11 +34,15 @@ export default function StudentDashboard() {
   const [stats, setStats] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [activeTask, setActiveTask] = useState(null);
+  const [todayActivity, setTodayActivity] = useState(null);
+  const [weeklyGoal, setWeeklyGoal] = useState(null);
 
   useEffect(() => {
     api.get('/stats').then(r => setStats(r.data)).catch(() => {});
     api.get('/game/sessions').then(r => setSessions(r.data.slice(0, 5))).catch(() => {});
     api.get('/tasks/active').then(r => { if (r.data) setActiveTask(r.data); }).catch(() => {});
+    api.get('/activity/today').then(r => setTodayActivity(r.data)).catch(() => {});
+    api.get('/activity/weekly').then(r => setWeeklyGoal(r.data)).catch(() => {});
   }, []);
 
   const masteryPct = stats ? (stats.level_counts?.['3'] || 0) / Math.max(stats.total_words, 1) * 100 : 0;
@@ -44,6 +67,29 @@ export default function StudentDashboard() {
           >
             <Gamepad2 className="w-5 h-5" /> Test Now
           </button>
+        </div>
+
+        {/* Today's Activity + Weekly Goal */}
+        <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-6" data-testid="today-activity">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
+            <div className="flex-1">
+              <h2 className="text-lg font-black text-[#1B5E20] mb-4">Today's Activity</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <DailyStat icon={BookOpen} label="Words Spelled" value={todayActivity?.words_spelled || 0} color="#2E7D32" />
+                <DailyStat icon={Brain} label="Meanings Learned" value={todayActivity?.meanings_learned || 0} color="#7B1FA2" />
+                <DailyStat icon={PenTool} label="Levels Passed" value={todayActivity?.levels_passed || 0} color="#E65100" />
+                <DailyStat icon={Clock} label="Time Spent" value={`${Math.round((todayActivity?.time_spent_seconds || 0) / 60)}m`} color="#0288D1" />
+              </div>
+            </div>
+            <div className="flex flex-col items-center gap-2 shrink-0">
+              <h2 className="text-sm font-black text-[#1B5E20] uppercase tracking-wide">Weekly Goal</h2>
+              <CircularProgress percentage={weeklyGoal?.percentage || 0} />
+              <div className="text-xs font-bold text-[#558B2F] text-center">
+                <span className="text-[#0288D1]">{weeklyGoal?.learn_done || 0}</span> learned,{' '}
+                <span className="text-[#E65100]">{weeklyGoal?.test_done || 0}</span> tested
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Weekly Task */}
@@ -180,6 +226,20 @@ function StatCard({ icon: Icon, label, value, color }) {
       <div>
         <div className="text-xs font-bold text-[#558B2F] uppercase tracking-wide">{label}</div>
         <div className="text-2xl font-black text-[#1B5E20]">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+function DailyStat({ icon: Icon, label, value, color }) {
+  return (
+    <div className="flex items-center gap-2 p-3 rounded-xl bg-[#F1F8E9]">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${color}15` }}>
+        <Icon className="w-4 h-4" style={{ color }} />
+      </div>
+      <div>
+        <div className="text-[10px] font-bold text-[#558B2F] uppercase leading-tight">{label}</div>
+        <div className="text-lg font-black text-[#1B5E20] leading-tight">{value}</div>
       </div>
     </div>
   );
