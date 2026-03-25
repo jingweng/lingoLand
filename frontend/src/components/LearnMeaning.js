@@ -4,6 +4,11 @@ import { SkipForward, ArrowLeft, Loader2, Volume2, CheckCircle2, BookOpen } from
 import { speak } from '@/lib/sounds';
 import { motion } from 'framer-motion';
 
+const syllabify = (w) => {
+  const parts = w.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi);
+  return parts ? parts.join(' · ') : w;
+};
+
 export default function LearnMeaning({ words, onFinish }) {
   const [index, setIndex] = useState(0);
   const [meanings, setMeanings] = useState(null);
@@ -78,6 +83,9 @@ export default function LearnMeaning({ words, onFinish }) {
             <Volume2 className="w-6 h-6 text-[#2E7D32]" />
           </button>
         </div>
+        <p className="text-xs font-bold text-[#558B2F] uppercase tracking-widest text-center mt-2" data-testid="syllable-view-meaning">
+          {syllabify(word)}
+        </p>
       </div>
 
       {/* Definitions */}

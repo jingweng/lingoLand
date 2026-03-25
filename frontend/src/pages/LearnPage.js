@@ -6,6 +6,11 @@ import LearnSpelling from '@/components/LearnSpelling';
 import LearnMeaning from '@/components/LearnMeaning';
 import { BookOpen, Brain, Check, ArrowRight, Lightbulb, Volume2 } from 'lucide-react';
 
+const syllabify = (word) => {
+  const parts = word.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi);
+  return parts ? parts.join(' · ') : word;
+};
+
 export default function LearnPage() {
   const navigate = useNavigate();
   const [words, setWords] = useState([]);
@@ -156,6 +161,9 @@ export default function LearnPage() {
                   <span className="font-black text-[#1B5E20] capitalize">{w.word}</span>
                   {selected.has(w.id) && <Check className="w-5 h-5 text-[#2E7D32]" />}
                 </div>
+                <p className="text-[10px] font-bold text-[#558B2F] uppercase tracking-widest text-center mt-1">
+                  {syllabify(w.word)}
+                </p>
               </button>
             ))}
             {words.length === 0 && (

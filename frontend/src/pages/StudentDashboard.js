@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/Layout';
@@ -43,6 +43,15 @@ export default function StudentDashboard() {
     api.get('/tasks/active').then(r => { if (r.data) setActiveTask(r.data); }).catch(() => {});
     api.get('/activity/today').then(r => setTodayActivity(r.data)).catch(() => {});
     api.get('/activity/weekly').then(r => setWeeklyGoal(r.data)).catch(() => {});
+  }, []);
+
+  // Track time spent on dashboard - POST every 60s
+  const timerRef = useRef(null);
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      api.post('/activity/log', { time_spent_seconds: 60 }).catch(() => {});
+    }, 60000);
+    return () => clearInterval(timerRef.current);
   }, []);
 
   const masteryPct = stats ? (stats.level_counts?.['3'] || 0) / Math.max(stats.total_words, 1) * 100 : 0;

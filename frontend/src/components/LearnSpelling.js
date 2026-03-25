@@ -4,6 +4,11 @@ import { speak } from '@/lib/sounds';
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+const syllabify = (w) => {
+  const parts = w.match(/[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi);
+  return parts ? parts.join(' · ') : w;
+};
+
 export default function LearnSpelling({ words, onFinish }) {
   const [index, setIndex] = useState(0);
   const [highlightIndex, setHighlightIndex] = useState(-1);
@@ -91,6 +96,9 @@ export default function LearnSpelling({ words, onFinish }) {
 
       {/* Word Display */}
       <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-8 text-center">
+        <p className="text-xs font-bold text-[#558B2F] uppercase tracking-widest text-center mb-4" data-testid="syllable-view">
+          {syllabify(word)}
+        </p>
         <div className="flex justify-center gap-2 sm:gap-3 flex-wrap mb-6">
           {word.split('').map((letter, i) => (
             <div
