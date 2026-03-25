@@ -1,32 +1,35 @@
-# Lingo Land (formerly Jason's Spelling Quest) - PRD
+# Lingo Land - Product Requirements Document
 
-## Problem Statement
-K-6 Educational Spelling & Vocabulary Game with "Friendly Forest" theme.
+## Original Problem Statement
+K-6 Educational Spelling & Vocabulary Game ("Jason's Spelling Quest", renamed to "Lingo Land"). Forest-themed UI with React frontend, FastAPI backend, MongoDB. Supports Student and Teacher roles with word mastery tracking (levels 0-3), game levels (Spelling Rain, Meaning Match, Sentence Architect), word ingestion from PDF/TXT/URL, and progress tracking.
 
 ## Architecture
-- **Frontend**: React + Tailwind CSS + shadcn/ui + Framer Motion
-- **Backend**: FastAPI + MongoDB
-- **AI**: OpenAI GPT-5.2 via Emergent LLM key
-- **TTS**: Browser Web Speech API
-- **Auth**: JWT-based (student/teacher roles)
+- **Frontend**: React + Tailwind CSS, lucide-react icons, framer-motion animations, canvas-confetti
+- **Backend**: FastAPI + MongoDB (motor async driver), JWT auth, bcrypt passwords
+- **AI**: OpenAI GPT-5.2 via emergentintegrations (Emergent LLM Key) for definitions & grammar
+- **TTS**: Web Speech API (browser-native)
 
-## What's Been Implemented (March 2026)
-### Iteration 1 - Core MVP
-- Full JWT auth (student/teacher), Word Bank CRUD + import (PDF/TXT/URL)
-- 3-level game: Spelling Rain, Meaning Match, Sentence Architect
-- Teacher dashboard, score tracking, confetti rewards
+## Implemented Features (as of 2026-03-25)
+- [x] Full JWT authentication (register/login/protected routes)
+- [x] Student Dashboard with daily stats, weekly goal, mastery progress
+- [x] Word Bank with CRUD, sorting, multi-select, Shift+Click range selection
+- [x] Word import from text, file (PDF/TXT), and URL
+- [x] Learn section with Spelling (syllable highlighter + TTS) and Meaning modes
+- [x] Test section with 3 game levels (Spelling Rain, Meaning Match, Sentence Architect)
+- [x] Pre-game level selection (choose Level 1, 2, 3 or any combo)
+- [x] My Tasks page with progress bars, rename, weekly task generation
+- [x] Auto activity logging on game session save
+- [x] Teacher endpoints for viewing student progress
 
-### Iteration 2 - Learn, Scheduler, Scoring Updates
-- Renamed app to "Lingo Land", nav "Play" → "Test"
-- Added "Learn" section: Spelling (TTS + letter-by-letter) and Meaning (3 defs + sentences)
-- Word Bank: sorting (A-Z, Level, Date), multi-select checkboxes, "Generate Weekly Task"
-- Level 3 new scoring: 10pts correct usage w/ complexity, 0pts incorrect, -1 per grammar error (41 rules)
-- Scheduler: 3 days Learning + 2 days Testing weekly task system
-- Dashboard weekly task widget with day progress
+## Prioritized Backlog
+### P1
+- Automatic backend activity logging for learn sessions (not just game)
+- Auto-mark task days as complete when sessions finish
 
-## Backlog
-- P1: Allow user to select which levels to play in Test mode (was requested earlier)
-- P1: Mark task days as complete when learn/test sessions finish
-- P2: Phaser.js game canvas upgrade
-- P2: Student leaderboard
-- P2: Export progress reports as PDF
+### P2
+- Teacher Dashboard full buildout
+- Phaser.js gameplay migration
+
+### P3
+- Refactoring: break server.py into routes/models/services
+- Refactoring: break StudentDashboard.js into smaller components
