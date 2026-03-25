@@ -11,22 +11,27 @@ K-6 Educational Spelling & Vocabulary Game ("Jason's Spelling Quest", renamed to
 
 ## Implemented Features (as of 2026-03-25)
 - [x] Full JWT authentication (register/login/protected routes)
-- [x] Minimalist Student Dashboard: Today's Activity + Weekly Task timeline only
+- [x] Minimalist Student Dashboard: Today's Activity + Weekly Task timeline
 - [x] "Progress: X/5 Days Complete" on Weekly Task widget
-- [x] "No Active Task" prompt directing to Word Bank
-- [x] Oxford Syllable Engine with Suffix-Merge silent-e logic (stalactites→sta·lac·tites)
+- [x] Task-based navigation: Learn/Test buttons bypass word selection with task words
+- [x] Session-end auto-marks task day complete (learn or test)
+- [x] Oxford Syllable Engine with Consonant-le rule (bot·tle, pud·dle) + Suffix-Merge (sta·lac·tites)
 - [x] Syllable Highlighter with TTS sync, Repeat/Pass controls, dynamic font
-- [x] Word Bank with compact '+' icon header, Shift+Click range selection, import
+- [x] Word Bank with compact '+' icon, Shift+Click, Z-A sort, Camera OCR (MOCKED)
+- [x] Import modal with Text, File, URL, and Camera tabs
 - [x] Learn section with Spelling (syllable highlighter) and Meaning modes
 - [x] Test section with 3 game levels + pre-game level selection (1/2/3 combo)
+- [x] PreGame with Shift+Click range selection, Sort (A-Z, Z-A, Level)
 - [x] My Tasks page with progress bars, rename, weekly task generation
 - [x] Auto activity logging on game session save
-- [x] Teacher endpoints for viewing student progress
+
+## Mocked Features
+- Camera OCR: Adds 'excavate', 'stalactites', 'geology' regardless of image input
 
 ## Prioritized Backlog
 ### P1
+- Real Camera OCR integration (replace mock with actual image-to-text)
 - Auto activity logging for learn sessions (not just game)
-- Auto-mark task days as complete when sessions finish
 
 ### P2
 - Teacher Dashboard full buildout
