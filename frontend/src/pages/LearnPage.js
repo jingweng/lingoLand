@@ -10,9 +10,12 @@ const getSyllables = (word) => {
   if (!word) return [word || ""];
   const pattern = /[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi;
   let parts = word.match(pattern) || [word];
-  if (word.toLowerCase().endsWith('e') && !/[aeiouy]e$/i.test(word) && parts.length > 1) {
-    const last = parts.pop();
-    parts[parts.length - 1] += last;
+  if (parts.length < 2) return parts;
+  // Suffix-Merge: if last part is consonant(s)+e(+s/d) and NOT a consonant-le syllable, merge it
+  const last = parts[parts.length - 1];
+  if (/^[^aeiouy]+e[sd]?$/i.test(last) && !/^le$/i.test(last)) {
+    const merged = parts.pop();
+    parts[parts.length - 1] += merged;
   }
   return parts;
 };

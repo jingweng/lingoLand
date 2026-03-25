@@ -16,6 +16,7 @@ const LEVEL_STYLES = [
 export default function WordBank() {
   const [words, setWords] = useState([]);
   const [newWord, setNewWord] = useState('');
+  const [showAddInput, setShowAddInput] = useState(false);
   const [search, setSearch] = useState('');
   const [filterLevel, setFilterLevel] = useState(null);
   const [sortBy, setSortBy] = useState('date');
@@ -122,31 +123,42 @@ export default function WordBank() {
       <div className="space-y-6" data-testid="word-bank-page">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h1 className="text-3xl font-black text-[#1B5E20]">Word Bank</h1>
-          <button
-            onClick={() => setImportModal(true)}
-            data-testid="import-btn"
-            className="wood-btn flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" /> Import Words
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowAddInput(!showAddInput)}
+              data-testid="add-word-toggle"
+              className="w-10 h-10 rounded-xl bg-[#2E7D32] text-white flex items-center justify-center hover:bg-[#1B5E20] transition-colors shadow-[0_3px_0_#1B5E20] active:shadow-none active:translate-y-0.5"
+              title="Add words"
+            >
+              <Plus className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setImportModal(true)}
+              data-testid="import-btn"
+              className="wood-btn flex items-center gap-2"
+            >
+              <Upload className="w-4 h-4" /> Import
+            </button>
+          </div>
         </div>
 
-        {/* Add word */}
-        <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-5">
-          <div className="flex gap-3">
+        {/* Inline Add Input */}
+        {showAddInput && (
+          <div className="flex gap-3 animate-slide-up">
             <input
               value={newWord}
               onChange={e => setNewWord(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addWord()}
               placeholder="Type a word (or comma-separated list)"
               data-testid="add-word-input"
+              autoFocus
               className="flex-1 bg-white border-4 border-[#A5D6A7] rounded-2xl px-4 py-3 text-lg font-bold text-[#1B5E20] placeholder:text-[#A5D6A7]/70 focus:outline-none focus:border-[#2E7D32] transition-all"
             />
             <button onClick={addWord} data-testid="add-word-btn" className="forest-btn px-6 flex items-center gap-2">
               <Plus className="w-5 h-5" /> Add
             </button>
           </div>
-        </div>
+        )}
 
         {/* Search + Filter + Sort */}
         <div className="flex flex-col sm:flex-row gap-3">
