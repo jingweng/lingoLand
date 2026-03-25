@@ -47,6 +47,24 @@ export default function StudentDashboard() {
 
   const daysComplete = activeTask?.schedule?.filter(d => d.completed).length || 0;
 
+  const goLearn = () => {
+    if (activeTask) {
+      navigate('/learn', { state: { taskWords: activeTask.words, taskId: activeTask.id, schedule: activeTask.schedule } });
+    } else {
+      navigate('/learn');
+    }
+  };
+
+  const goTest = () => {
+    if (activeTask) {
+      navigate('/game', {
+        state: { words: activeTask.words, selectedLevels: [1, 2, 3], taskId: activeTask.id, schedule: activeTask.schedule },
+      });
+    } else {
+      navigate('/play');
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6 sm:space-y-8" data-testid="student-dashboard">
@@ -114,11 +132,11 @@ export default function StudentDashboard() {
               ))}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => navigate('/learn')} data-testid="task-learn-btn"
+              <button onClick={goLearn} data-testid="task-learn-btn"
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#0288D1] text-white font-bold hover:bg-[#0277BD] transition-colors">
                 <Lightbulb className="w-4 h-4" /> Learn
               </button>
-              <button onClick={() => navigate('/play')} data-testid="task-test-btn"
+              <button onClick={goTest} data-testid="task-test-btn"
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#E65100] text-white font-bold hover:bg-[#BF360C] transition-colors">
                 <Gamepad2 className="w-4 h-4" /> Test
               </button>

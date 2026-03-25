@@ -110,6 +110,9 @@ export default function GamePlay() {
     }
   };
 
+  const taskId = location.state?.taskId || null;
+  const taskSchedule = location.state?.schedule || null;
+
   const finishGame = async () => {
     setGameComplete(true);
     confetti({ particleCount: 200, spread: 120, origin: { y: 0.5 } });
@@ -120,6 +123,13 @@ export default function GamePlay() {
         levels_completed: [...new Set(results.map(r => r.level))],
       });
     } catch {}
+    // Mark test day complete on task
+    if (taskId && taskSchedule) {
+      const nextTestDay = taskSchedule.find(d => d.type === 'test' && !d.completed);
+      if (nextTestDay) {
+        try { await api.post(`/tasks/${taskId}/day/${nextTestDay.day}/complete`); } catch {}
+      }
+    }
   };
 
   const handleGameOver = () => {

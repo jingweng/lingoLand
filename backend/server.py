@@ -520,7 +520,7 @@ async def toggle_task_word(task_id: str, word_id: str, type: str = "learn", user
     )
     return {"toggled": True}
 
-@api_router.put("/tasks/{task_id}/day/{day_num}/complete")
+@api_router.post("/tasks/{task_id}/day/{day_num}/complete")
 async def complete_task_day(task_id: str, day_num: int, user=Depends(auth_dependency)):
     result = await db.weekly_tasks.update_one(
         {"id": task_id, "user_id": user["id"], "schedule.day": day_num},

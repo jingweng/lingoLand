@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import LearnSpelling from '@/components/LearnSpelling';
@@ -11,9 +11,16 @@ const getSyllables = (word) => {
   const pattern = /[^aeiouy]*[aeiouy]+(?:[^aeiouy](?![aeiouy]))*/gi;
   let parts = word.match(pattern) || [word];
   if (parts.length < 2) return parts;
-  // Suffix-Merge: if last part is consonant(s)+e(+s/d) and NOT a consonant-le syllable, merge it
   const last = parts[parts.length - 1];
-  if (/^[^aeiouy]+e[sd]?$/i.test(last) && !/^le$/i.test(last)) {
+  if (/^le$/i.test(last) && parts.length >= 2) {
+    const prev = parts[parts.length - 2];
+    if (prev.length >= 2) {
+      parts[parts.length - 2] = prev.slice(0, -1);
+      parts[parts.length - 1] = prev.slice(-1) + last;
+      return parts;
+    }
+  }
+  if (/^[^aeiouy]+e[sd]?$/i.test(last)) {
     const merged = parts.pop();
     parts[parts.length - 1] += merged;
   }
@@ -22,16 +29,26 @@ const getSyllables = (word) => {
 
 export default function LearnPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [words, setWords] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [started, setStarted] = useState(false);
   const [mode, setMode] = useState('spelling');
   const [activeTask, setActiveTask] = useState(null);
 
+  const taskState = location.state;
+
   useEffect(() => {
-    api.get('/words').then(r => setWords(r.data)).catch(() => {});
+    if (taskState?.taskWords) {
+      // Task-based: load task words and auto-select all
+      const tw = taskState.taskWords.map(w => ({ ...w, level: w.level || 0 }));
+      setWords(tw);
+      setSelected(new Set(tw.map(w => w.id)));
+    } else {
+      api.get('/words').then(r => setWords(r.data)).catch(() => {});
+    }
     api.get('/tasks/active').then(r => { if (r.data) setActiveTask(r.data); }).catch(() => {});
-  }, []);
+  }, [taskState]);
 
   const toggleWord = (id) => {
     setSelected(prev => {
@@ -54,6 +71,18 @@ export default function LearnPage() {
   const startLearning = () => {
     if (selected.size === 0) return;
     setStarted(true);
+  };
+
+  const handleLearnFinish = async () => {
+    const tId = taskState?.taskId || activeTask?.id;
+    const sched = taskState?.schedule || activeTask?.schedule;
+    if (tId && sched) {
+      const nextLearnDay = sched.find(d => d.type === 'learn' && !d.completed);
+      if (nextLearnDay) {
+        try { await api.post(`/tasks/${tId}/day/${nextLearnDay.day}/complete`); } catch {}
+      }
+    }
+    setStarted(false);
   };
 
   const selectedWords = words.filter(w => selected.has(w.id));
@@ -89,10 +118,10 @@ export default function LearnPage() {
           </div>
 
           {mode === 'spelling' && (
-            <LearnSpelling words={selectedWords} onFinish={() => setStarted(false)} />
+            <LearnSpelling words={selectedWords} onFinish={handleLearnFinish} />
           )}
           {mode === 'meaning' && (
-            <LearnMeaning words={selectedWords} onFinish={() => setStarted(false)} />
+            <LearnMeaning words={selectedWords} onFinish={handleLearnFinish} />
           )}
         </div>
       </Layout>

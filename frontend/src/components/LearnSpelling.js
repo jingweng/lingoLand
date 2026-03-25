@@ -8,7 +8,17 @@ const getSyllables = (word) => {
   let parts = word.match(pattern) || [word];
   if (parts.length < 2) return parts;
   const last = parts[parts.length - 1];
-  if (/^[^aeiouy]+e[sd]?$/i.test(last) && !/^le$/i.test(last)) {
+  // HIGHEST PRIORITY: Consonant-le rule — split 3 back from end (C+l+e)
+  if (/^le$/i.test(last) && parts.length >= 2) {
+    const prev = parts[parts.length - 2];
+    if (prev.length >= 2) {
+      parts[parts.length - 2] = prev.slice(0, -1);
+      parts[parts.length - 1] = prev.slice(-1) + last;
+      return parts;
+    }
+  }
+  // Suffix-Merge: silent-e endings (consonant(s)+e+optional s/d)
+  if (/^[^aeiouy]+e[sd]?$/i.test(last)) {
     const merged = parts.pop();
     parts[parts.length - 1] += merged;
   }

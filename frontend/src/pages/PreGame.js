@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
-import { Gamepad2, BookOpen, Brain, PenTool, Check, ArrowRight, Sparkles } from 'lucide-react';
+import { Gamepad2, BookOpen, Brain, PenTool, Check, ArrowRight, Sparkles, ArrowUpDown } from 'lucide-react';
 
 const LEVEL_LABELS = ['New', 'Spelled', 'Meaning', 'Mastered'];
-const LEVEL_ICONS = [BookOpen, BookOpen, Brain, PenTool];
 const LEVEL_COLORS = ['#90A4AE', '#FBC02D', '#66BB6A', '#FF8F00'];
 
 const LEVEL_GOALS = [
@@ -14,30 +13,69 @@ const LEVEL_GOALS = [
   { level: 3, title: 'Sentence Architect', icon: PenTool, desc: 'Write a creative sentence using the word with proper grammar!', color: '#E65100' },
 ];
 
+const SORT_OPTIONS = [
+  { key: 'alpha', label: 'A-Z' },
+  { key: 'alpha-desc', label: 'Z-A' },
+  { key: 'level', label: 'Level' },
+];
+
 export default function PreGame() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [words, setWords] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [filterLevel, setFilterLevel] = useState(null);
   const [selectedLevels, setSelectedLevels] = useState(new Set([1, 2, 3]));
+  const [sortBy, setSortBy] = useState('alpha');
+  const [lastCheckedIdx, setLastCheckedIdx] = useState(null);
+
+  // Check if navigated with task words (bypass mode)
+  const taskState = location.state;
 
   useEffect(() => {
-    api.get('/words').then(r => setWords(r.data)).catch(() => {});
-  }, []);
+    if (taskState?.taskWords) {
+      // Task-based: load task words directly and auto-start
+      const tw = taskState.taskWords.map(w => ({ ...w, level: w.level || 0 }));
+      setWords(tw);
+      setSelected(new Set(tw.map(w => w.id)));
+    } else {
+      api.get('/words').then(r => setWords(r.data)).catch(() => {});
+    }
+  }, [taskState]);
 
   const filtered = filterLevel !== null ? words.filter(w => w.level === filterLevel) : words;
   const playable = filtered.filter(w => w.level < 3);
 
-  const toggleWord = (id) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+  const sorted = [...playable].sort((a, b) => {
+    if (sortBy === 'alpha') return a.word.localeCompare(b.word);
+    if (sortBy === 'alpha-desc') return b.word.localeCompare(a.word);
+    if (sortBy === 'level') return a.level - b.level;
+    return 0;
+  });
+
+  const toggleWord = (id, idx, event) => {
+    if (event?.shiftKey && lastCheckedIdx !== null) {
+      const start = Math.min(lastCheckedIdx, idx);
+      const end = Math.max(lastCheckedIdx, idx);
+      setSelected(prev => {
+        const next = new Set(prev);
+        for (let i = start; i <= end; i++) {
+          next.add(sorted[i].id);
+        }
+        return next;
+      });
+    } else {
+      setSelected(prev => {
+        const next = new Set(prev);
+        next.has(id) ? next.delete(id) : next.add(id);
+        return next;
+      });
+    }
+    setLastCheckedIdx(idx);
   };
 
   const selectAll = () => {
-    const ids = playable.map(w => w.id);
+    const ids = sorted.map(w => w.id);
     setSelected(prev => prev.size === ids.length ? new Set() : new Set(ids));
   };
 
@@ -52,7 +90,14 @@ export default function PreGame() {
   const startGame = () => {
     const gameWords = words.filter(w => selected.has(w.id));
     if (gameWords.length === 0 || selectedLevels.size === 0) return;
-    navigate('/game', { state: { words: gameWords, selectedLevels: [...selectedLevels] } });
+    navigate('/game', {
+      state: {
+        words: gameWords,
+        selectedLevels: [...selectedLevels],
+        taskId: taskState?.taskId || null,
+        schedule: taskState?.schedule || null,
+      },
+    });
   };
 
   return (
@@ -82,10 +127,10 @@ export default function PreGame() {
           ))}
         </div>
 
-        {/* Filter + Select */}
+        {/* Filter + Sort + Select */}
         <div className="bg-white rounded-3xl border-4 border-[#A5D6A7] shadow-[8px_8px_0_#C8E6C9] p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-            <div className="flex gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap items-center">
               <span className="text-sm font-bold text-[#558B2F]">Filter:</span>
               {[null, 0, 1, 2].map(lv => (
                 <button
@@ -99,21 +144,35 @@ export default function PreGame() {
                   {lv === null ? 'All' : LEVEL_LABELS[lv]}
                 </button>
               ))}
+              <div className="w-px h-5 bg-[#C8E6C9] mx-1" />
+              <ArrowUpDown className="w-4 h-4 text-[#558B2F]" />
+              {SORT_OPTIONS.map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => setSortBy(s.key)}
+                  data-testid={`pregame-sort-${s.key}`}
+                  className={`px-3 py-1 rounded-xl text-sm font-bold transition-all ${
+                    sortBy === s.key ? 'bg-[#795548] text-white' : 'bg-[#EFEBE9] text-[#795548] hover:bg-[#D7CCC8]'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
             </div>
             <button
               onClick={selectAll}
               data-testid="select-all-btn"
               className="text-sm font-bold text-[#2E7D32] hover:underline"
             >
-              {selected.size === playable.length && playable.length > 0 ? 'Deselect All' : 'Select All'}
+              {selected.size === sorted.length && sorted.length > 0 ? 'Deselect All' : 'Select All'}
             </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto" data-testid="word-selection-grid">
-            {playable.map(w => (
+            {sorted.map((w, idx) => (
               <button
                 key={w.id}
-                onClick={() => toggleWord(w.id)}
+                onClick={(e) => toggleWord(w.id, idx, e)}
                 data-testid={`select-word-${w.word}`}
                 className={`p-3 rounded-2xl border-4 text-left transition-all ${
                   selected.has(w.id)
@@ -131,7 +190,7 @@ export default function PreGame() {
                 </div>
               </button>
             ))}
-            {playable.length === 0 && (
+            {sorted.length === 0 && (
               <div className="col-span-full text-center py-8">
                 <p className="font-bold text-[#558B2F]">
                   {words.length === 0 ? 'No words yet! Add some to your Word Bank first.' : 'All words at this level are mastered!'}

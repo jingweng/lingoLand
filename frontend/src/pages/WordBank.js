@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
-import { Plus, Trash2, Upload, Globe, FileText, Search, Filter, X, ArrowUpDown, CalendarDays, CheckSquare, Square } from 'lucide-react';
+import { Plus, Trash2, Upload, Globe, FileText, Search, Filter, X, ArrowUpDown, CalendarDays, CheckSquare, Square, Camera } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 
@@ -28,6 +28,7 @@ export default function WordBank() {
   const [taskSelected, setTaskSelected] = useState(new Set());
   const [generatingTask, setGeneratingTask] = useState(false);
   const [lastCheckedIdx, setLastCheckedIdx] = useState(null);
+  const [cameraProcessing, setCameraProcessing] = useState(false);
 
   const fetchWords = useCallback(async () => {
     const params = {};
@@ -110,10 +111,29 @@ export default function WordBank() {
     setGeneratingTask(false);
   };
 
+  const handleCameraCapture = async (e) => {
+    if (!e.target.files?.[0]) return;
+    setCameraProcessing(true);
+    // Mock OCR: simulate processing delay then add demo words
+    await new Promise(r => setTimeout(r, 2000));
+    const mockWords = ['excavate', 'stalactites', 'geology'];
+    try {
+      const res = await api.post('/words', { words: mockWords });
+      if (res.data.added) setWords(prev => [...prev, ...res.data.added]);
+      setCameraProcessing(false);
+      setImportModal(false);
+      alert(`Camera OCR: Added ${mockWords.length} words — ${mockWords.join(', ')}`);
+    } catch {
+      setCameraProcessing(false);
+      alert('Failed to add OCR words');
+    }
+  };
+
   const filtered = words.filter(w => !search || w.word.includes(search.toLowerCase()));
 
   const sorted = [...filtered].sort((a, b) => {
     if (sortBy === 'alpha') return a.word.localeCompare(b.word);
+    if (sortBy === 'alpha-desc') return b.word.localeCompare(a.word);
     if (sortBy === 'level') return a.level - b.level;
     return (b.created_at || '').localeCompare(a.created_at || '');
   });
@@ -192,6 +212,7 @@ export default function WordBank() {
             <ArrowUpDown className="w-4 h-4 text-[#558B2F]" />
             {[
               { key: 'alpha', label: 'A-Z' },
+              { key: 'alpha-desc', label: 'Z-A' },
               { key: 'level', label: 'Level' },
               { key: 'date', label: 'Date' },
             ].map(s => (
@@ -294,6 +315,7 @@ export default function WordBank() {
                   { key: 'text', icon: FileText, label: 'Text' },
                   { key: 'file', icon: Upload, label: 'File' },
                   { key: 'url', icon: Globe, label: 'URL' },
+                  { key: 'camera', icon: Camera, label: 'Camera' },
                 ].map(t => (
                   <button
                     key={t.key}
@@ -334,6 +356,26 @@ export default function WordBank() {
                   data-testid="import-url-input"
                   className="w-full bg-white border-4 border-[#A5D6A7] rounded-2xl px-4 py-3 text-base font-bold text-[#1B5E20] placeholder:text-[#A5D6A7]/70 focus:outline-none focus:border-[#2E7D32] transition-all"
                 />
+              )}
+              {importType === 'camera' && (
+                <div className="border-4 border-dashed border-[#A5D6A7] rounded-2xl p-8 text-center">
+                  <Camera className="w-8 h-8 text-[#A5D6A7] mx-auto mb-2" />
+                  <p className="text-sm font-bold text-[#558B2F] mb-3">Take a photo of text to extract words</p>
+                  <input
+                    type="file"
+                    capture="environment"
+                    accept="image/*"
+                    data-testid="import-camera-input"
+                    onChange={handleCameraCapture}
+                    className="text-sm font-bold text-[#2E7D32]"
+                  />
+                  {cameraProcessing && (
+                    <div className="mt-4 flex items-center justify-center gap-2 text-[#0288D1]">
+                      <div className="w-4 h-4 border-2 border-[#0288D1] border-t-transparent rounded-full animate-spin" />
+                      <span className="font-bold text-sm">Processing image...</span>
+                    </div>
+                  )}
+                </div>
               )}
 
               <button
